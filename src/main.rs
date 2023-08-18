@@ -11,6 +11,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use powershell_script::PsScriptBuilder;
 use ratatui::{prelude::*, widgets::*};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -58,11 +59,8 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
 
             let selected_file = bookmarks_vec.get(0).unwrap();
 
-            let file_previews = Paragraph::new(get_file_preview(selected_file)).block(
-                Block::default()
-                    .title("File preview")
-                    .borders(Borders::ALL),
-            );
+            let file_previews = Paragraph::new(get_file_preview(selected_file))
+                .block(Block::default().title("File preview").borders(Borders::ALL));
             frame.render_widget(file_previews, horiz_chunks[1]);
 
             let search_bar = Paragraph::new(" -> ").block(Block::default().borders(Borders::ALL));
@@ -79,7 +77,19 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
 }
 
 fn get_file_preview(filename: &str) -> String {
-    "[This is a file preview]".into()
+    let ps = PsScriptBuilder::new()
+        .no_profile(true)
+        .non_interactive(true)
+        .hidden(false)
+        .print_commands(false)
+        .build();
+
+    let output = ps.run(&format!(r#"cat "{}""#, filename));
+
+    match output {
+        Ok(output) => output.stdout().unwrap(),
+        Err(e) => panic!("{}", e),
+    }
 }
 
 fn read_lines<P>(filename: P) -> io::Result<Vec<String>>

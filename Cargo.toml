@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.27.0"
+powershell_script = "1.1.0"
 ratatui = { version = "0.22.0", features = ["all-widgets"] }

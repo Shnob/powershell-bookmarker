@@ -1,1 +1,2 @@
+F:/Stuff/CODE/Rust/powershell_bookmarker/src/main.rs
 F:/Stuff/CODE/Rust/powershell_bookmarker/bookmarks.txt

@@ -162,8 +162,15 @@ name = "powershell_bookmarker"
 version = "0.1.0"
 dependencies = [
  "crossterm 0.27.0",
+ "powershell_script",
  "ratatui",
 ]
+
+[[package]]
+name = "powershell_script"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef8336090917f3d3a044256bc0e5c51d5420e5d09dfa1df4868083c5231a454"
 
 [[package]]
 name = "ratatui"
