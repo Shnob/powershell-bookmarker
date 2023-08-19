@@ -10,8 +10,8 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ngrammatic::{Corpus, CorpusBuilder};
 use ratatui::{prelude::*, widgets::*};
+use rust_fuzzy_search::fuzzy_search_sorted;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = setup_terminal()?;
@@ -58,20 +58,7 @@ fn run(
     let mut user_search = String::new();
     let mut ui_mode = UiMode::Search;
 
-    let bookmarks_corpus = {
-        let mut corpus = CorpusBuilder::new()
-            .arity(2)
-            .pad_full(ngrammatic::Pad::Auto)
-            .case_insensitive()
-            .finish();
-
-        for bookmark in &bookmarks_vec {
-            corpus.add_text(bookmark);
-        }
-        corpus
-    };
-
-    let mut bookmarks_ordered = order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
+    let mut bookmarks_ordered = order_bookmarks(&bookmarks_vec, &user_search);
 
     loop {
         terminal.draw(|frame| {
@@ -151,13 +138,11 @@ fn run(
                     }
                     KeyCode::Backspace => {
                         user_search.pop();
-                        bookmarks_ordered =
-                            order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
+                        bookmarks_ordered = order_bookmarks(&bookmarks_vec, &user_search);
                     }
                     KeyCode::Char(c) => {
                         user_search.push(c);
-                        bookmarks_ordered =
-                            order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
+                        bookmarks_ordered = order_bookmarks(&bookmarks_vec, &user_search);
                     }
                     KeyCode::Enter => {
                         return Ok(Some(bookmarks_ordered[selected_index].clone()));
@@ -170,14 +155,10 @@ fn run(
     Ok(None)
 }
 
-fn order_bookmarks(corpus: &Corpus, search: &str, _bookmarks_vec: &Vec<String>) -> Vec<String> {
-    let results = corpus.search(search, -100.0);
-
-    let results: Vec<String> = results.iter().map(|r| r.text.clone()).collect();
-
-    //results.append(&mut bookmarks_vec.clone());
-
-    results
+fn order_bookmarks(bookmarks_vec: &Vec<String>, search: &str) -> Vec<String> {
+    let bookmarks_str: Vec<_> = bookmarks_vec.iter().map(String::as_str).collect();
+    let result = fuzzy_search_sorted(search, &bookmarks_str);
+    result.iter().map(|x| x.0.to_string()).collect()
 }
 
 fn get_folder_preview(filename: &str) -> String {
