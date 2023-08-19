@@ -1,13 +1,13 @@
 use std::{
     error::Error,
-    fs::File,
+    fs::{File, self},
     io::{self, BufRead, BufReader, Stdout},
     path::Path,
     time::Duration,
 };
 
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -16,8 +16,13 @@ use ratatui::{prelude::*, widgets::*};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = setup_terminal()?;
-    run(&mut terminal)?;
+    let choice = run(&mut terminal)?;
     restore_terminal(&mut terminal)?;
+
+    let choice = choice.unwrap_or_else(|| ".".to_string());
+
+    fs::write("C:/Users/Jake/AppData/Local/Temp/powershell_script_temp_file.txt", choice).unwrap();
+
     Ok(())
 }
 
@@ -36,11 +41,20 @@ fn restore_terminal(
     Ok(terminal.show_cursor()?)
 }
 
-fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn Error>> {
-    let bookmarks_vec = read_lines("bookmarks.txt")?;
-    let mut selected_folder = 0;
+enum UiMode {
+    Normal,
+    Search,
+}
 
-    Ok(loop {
+fn run(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+) -> Result<Option<String>, Box<dyn Error>> {
+    let bookmarks_vec = read_lines("bookmarks.txt")?;
+    let mut selected_index: usize = 0;
+    let mut user_search = String::new();
+    let mut ui_mode = UiMode::Search;
+
+    loop {
         terminal.draw(|frame| {
             let vert_chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -60,7 +74,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
                     .enumerate()
                     .map(|(i, x)| (i, ListItem::new(x.as_str())))
                     .map(|(i, x)| {
-                        if i == selected_folder {
+                        if i == selected_index {
                             x.style(Style::default().fg(Color::Black).bg(Color::White))
                         } else {
                             x
@@ -71,7 +85,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
             .block(Block::default().title("Bookmarks").borders(Borders::ALL));
             frame.render_widget(folder_names, horiz_chunks[0]);
 
-            let selected_folder = bookmarks_vec.get(selected_folder).unwrap();
+            let selected_folder = bookmarks_vec.get(selected_index).unwrap();
 
             let folder_previews = Paragraph::new(get_folder_preview(selected_folder)).block(
                 Block::default()
@@ -80,24 +94,54 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
             );
             frame.render_widget(folder_previews, horiz_chunks[1]);
 
-            let search_bar = Paragraph::new(" -> ").block(Block::default().borders(Borders::ALL));
+            let search_bar = Paragraph::new(format!(" -> {}", user_search))
+                .block(Block::default().borders(Borders::ALL));
             frame.render_widget(search_bar, vert_chunks[1]);
         })?;
-        if event::poll(Duration::from_millis(50))? {
+
+        if event::poll(Duration::from_millis(10))? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    // BUG: This stuff don't work
-                    KeyCode::Up | KeyCode::Right => {selected_folder = (selected_folder - 1).wrapping_rem_euclid(bookmarks_vec.len())},
-                    KeyCode::Down | KeyCode::Left => {selected_folder = (selected_folder + 1).rem_euclid(bookmarks_vec.len())},
-                    _ => (),
+                if let KeyEventKind::Release = key.kind {
+                    continue;
                 }
-                //if KeyCode::Char('q') == key.code {
-                //    break;
-                //}
+                match ui_mode {
+                    UiMode::Normal => match key.code {
+                        KeyCode::Char('q') => break,
+                        KeyCode::Up | KeyCode::Right | KeyCode::Char('k') => {
+                            selected_index = (selected_index as isize - 1)
+                                .rem_euclid(bookmarks_vec.len() as isize)
+                                as usize;
+                        }
+                        KeyCode::Down | KeyCode::Left | KeyCode::Char('j') => {
+                            selected_index = (selected_index as isize + 1)
+                                .rem_euclid(bookmarks_vec.len() as isize)
+                                as usize;
+                        }
+                        KeyCode::Enter => {
+                            return Ok(Some(bookmarks_vec[selected_index].clone()));
+                        }
+                        _ => (),
+                    },
+                    UiMode::Search => match key.code {
+                        KeyCode::Esc => {
+                            ui_mode = UiMode::Normal;
+                        }
+                        KeyCode::Backspace => {
+                            user_search.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            user_search = format!("{}{}", user_search, c);
+                        }
+                        KeyCode::Enter => {
+                            return Ok(Some(bookmarks_vec[selected_index].clone()));
+                        }
+                        _ => (),
+                    },
+                }
             }
         }
-    })
+    }
+    Ok(None)
 }
 
 fn get_folder_preview(filename: &str) -> String {
