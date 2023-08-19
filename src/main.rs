@@ -10,6 +10,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use ngrammatic::{Corpus, CorpusBuilder};
 use ratatui::{prelude::*, widgets::*};
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -57,6 +58,21 @@ fn run(
     let mut user_search = String::new();
     let mut ui_mode = UiMode::Search;
 
+    let bookmarks_corpus = {
+        let mut corpus = CorpusBuilder::new()
+            .arity(2)
+            .pad_full(ngrammatic::Pad::Auto)
+            .case_insensitive()
+            .finish();
+
+        for bookmark in &bookmarks_vec {
+            corpus.add_text(bookmark);
+        }
+        corpus
+    };
+
+    let mut bookmarks_ordered = order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
+
     loop {
         terminal.draw(|frame| {
             let vert_chunks = Layout::default()
@@ -72,7 +88,7 @@ fn run(
                 .split(vert_chunks[0]);
 
             let folder_names = List::new(
-                bookmarks_vec
+                bookmarks_ordered
                     .iter()
                     .enumerate()
                     .map(|(i, x)| (i, ListItem::new(x.as_str())))
@@ -135,9 +151,13 @@ fn run(
                     }
                     KeyCode::Backspace => {
                         user_search.pop();
+                        bookmarks_ordered =
+                            order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
                     }
                     KeyCode::Char(c) => {
                         user_search.push(c);
+                        bookmarks_ordered =
+                            order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
                     }
                     KeyCode::Enter => {
                         return Ok(Some(bookmarks_vec[selected_index].clone()));
@@ -148,6 +168,16 @@ fn run(
         }
     }
     Ok(None)
+}
+
+fn order_bookmarks(corpus: &Corpus, search: &str, _bookmarks_vec: &Vec<String>) -> Vec<String> {
+    let results = corpus.search(search, -100.0);
+
+    let results: Vec<String> = results.iter().map(|r| r.text.clone()).collect();
+
+    //results.append(&mut bookmarks_vec.clone());
+
+    results
 }
 
 fn get_folder_preview(filename: &str) -> String {
