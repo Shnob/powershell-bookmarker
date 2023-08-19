@@ -124,6 +124,9 @@ fn run(
                     KeyCode::Enter => {
                         return Ok(Some(bookmarks_vec[selected_index].clone()));
                     }
+                    KeyCode::Char('i' | 'a' | ' ') => {
+                        ui_mode = UiMode::Search;
+                    }
                     _ => (),
                 },
                 UiMode::Search => match key.code {
