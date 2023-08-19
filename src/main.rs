@@ -52,7 +52,10 @@ enum UiMode {
 fn run(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
 ) -> Result<Option<String>, Box<dyn Error>> {
-    let bookmarks_vec = read_lines("bookmarks.txt")?;
+    let bookmarks_vec = read_lines("bookmarks.txt")?
+        .iter()
+        .map(|s| s.to_lowercase())
+        .collect();
     let mut selected_index: usize = 0;
     let mut folder_preview = String::new();
     let mut user_search = String::new();
@@ -156,6 +159,8 @@ fn run(
 }
 
 fn order_bookmarks(bookmarks_vec: &Vec<String>, search: &str) -> Vec<String> {
+    let search = search.to_lowercase();
+    let search = &search.as_str();
     let bookmarks_str: Vec<_> = bookmarks_vec.iter().map(String::as_str).collect();
     let result = fuzzy_search_sorted(search, &bookmarks_str);
     result.iter().map(|x| x.0.to_string()).collect()
