@@ -1,2 +1,14 @@
 F:/Stuff/CODE/Rust/+bevy
 F:/Stuff/CODE/Rust/powershell_bookmarker/src
+F:/Stuff/CODE
+F:/Stuff/VUW
+F:/Stuff/VUW/VUW_2023_Tri2
+F:/Stuff/VUW/VUW_2023_Tri1
+F:/Stuff/VUW/VUW_2022_Tri3
+F:/Stuff/VUW/VUW_2022_Tri2
+C:/Stuff/!!! HUGE MOVIES !!!
+F:/Stuff/movs
+F:/Stuff/Godot
+F:/Stuff/VUW/VUW_2023_Tri2/SWEN225/L3/battleships/swen225/battleships
+F:/Stuff/CODE/Rust/bg_mandelbrot/images
+F:/Stuff/CODE/Rust/bg_mandelbrot/finals
