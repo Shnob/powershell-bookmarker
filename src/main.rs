@@ -138,7 +138,7 @@ fn run(
                             get_folder_preview(bookmarks_vec.get(selected_index).unwrap());
                     }
                     KeyCode::Enter => {
-                        return Ok(Some(bookmarks_vec[selected_index].clone()));
+                        return Ok(Some(bookmarks_ordered[selected_index].clone()));
                     }
                     KeyCode::Char('i' | 'a' | ' ') => {
                         ui_mode = UiMode::Search;
@@ -160,7 +160,7 @@ fn run(
                             order_bookmarks(&bookmarks_corpus, &user_search, &bookmarks_vec);
                     }
                     KeyCode::Enter => {
-                        return Ok(Some(bookmarks_vec[selected_index].clone()));
+                        return Ok(Some(bookmarks_ordered[selected_index].clone()));
                     }
                     _ => (),
                 },
